@@ -1,87 +1,78 @@
-"use client"
+"use client";
 
-import { useCallback, useState } from "react"
+import { useCallback, useEffect, useState } from "react";
+
+// import team.json from public/team.json
+import data from "./team.json";
+import { toast, ToastContainer } from "react-toastify";
+
+interface Team {
+  name: string;
+  logo: string;
+  op_gg: string;
+}
 
 export default function Home() {
-  const [inputValue, setInputValue] = useState("")
-  const [response, setResponse] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [inputValue, setInputValue] = useState("");
 
-  const getOPGG = useCallback(async (teamLink: string) => {
-    const teamName = teamLink.split("/")[4];
+  const [teams, setTeams] = useState<any[] | null>(data);
 
-    if (!teamName) return "Invalid Team Link, should be like https://universityesports.fr/team/4es-dollex"
-
-    const teamData = await fetch(
-      `https://api.universityesports.fr/api/v001/showcase/university-esports/equipo/${teamName}`, { cache: "no-store" }
-    ).then((res) => {
-      if (!res.ok) return { status: "not found" }
-      return res.json()
-    });
-
-    if (teamData.status === "error") return "Error"
-    if (teamData.status === "not found") return "Team not found"
-
-    const teamMembers = teamData.returnData.miembros;
-
-    const teamMembersData = await Promise.all(
-      teamMembers.map(async (member: { username: string }) => {
-        const memberData = await fetch(
-          `https://api.universityesports.fr/api/v001/showcase/university-esports/user/profile/${member.username}`, { cache: "no-store" }
-        ).then((res) => res.json());
-        return memberData.returnData.profile.gameNicks;
+  useEffect(() => {
+    // search with inputValue
+    // setTeams with the result
+    if (!inputValue || inputValue.length === 0) return setTeams(data);
+    setTeams(
+      data.filter((team) => {
+        return team.name.toLowerCase().includes(inputValue.toLowerCase());
       })
     );
+  }, [inputValue]);
 
-    const nicks = teamMembersData.map((obj) => obj[0].nick);
-
-    // build op.gg link
-    //https://www.op.gg/multisearch/euw?summoners=Bouhahahahahaha,%20Rob%C3%A9b%C3%B8u
-    const opGGlink = encodeURI(
-      `https://www.op.gg/multisearch/euw?summoners=${nicks.join(",")}`
-    );
-
-    return opGGlink
-  }, [])
+  if (!teams) return <div>Erreur contacter Robébou</div>;
 
   return (
-    <main className="bg-[#1a1a1a] h-screen flex flex-col gap-5 py-10 items-center">
-      <h1 className="self-center text-4xl text-[#42b883] font-bold py-5">Grosse Ligue multi opgg</h1>
-      <form className="flex gap-5 min-w-max" onSubmit={e => e.preventDefault()}>
+    <main className="bg-[#1a1a1a]  flex flex-col gap-5 py-10 items-center">
+      <h1 className="self-center text-4xl text-[#42b883] font-bold py-5">
+        Grosse Ligue multi opgg
+      </h1>
+      <form
+        className="flex gap-5 min-w-max"
+        onSubmit={(e) => e.preventDefault()}
+      >
         <input
           className="bg-[#1b1b1b] border rounded-lg border-gray-600 p-3 w-96 focus:outline-none"
-          placeholder="https://universityesports.fr/team/4es-dollex"
+          placeholder="4eSport"
           value={inputValue}
-          onChange={e => setInputValue(e.target.value)}
+          onChange={(e) => setInputValue(e.target.value)}
         />
-        <button
-          className="text-[#213547] rounded-lg p-3 bg-[#42b883] mx-auto font-semibold disabled:cursor-not-allowed disabled:bg-opacity-60 transition-all"
-          onClick={() => {
-            if (inputValue === "") return
-            setIsLoading(true)
-            getOPGG(inputValue)
-              .then(resp => setResponse(resp))
-              .catch(error => console.error(error))
-              .finally(() => setIsLoading(false))
-          }}
-          disabled={isLoading}
-          type="submit"
-        >
-          Multi OPGG
-        </button>
       </form>
-      {isLoading && <div>Loading...</div>}
-      {response && <div className="flex gap-2 items-center">
-        <a href={response} target="_blank" className="text-[#42b883]">
-          {response}
-        </a>
-        <button
-          className="text-[#213547] rounded-lg p-3 bg-[#42b883] mx-auto font-semibold disabled:cursor-not-allowed disabled:bg-opacity-60 transition-all"
-          onClick={() => navigator.clipboard.writeText(response)}
-        >
-          Copy
-        </button>
-      </div>}
+
+      <div className="flex flex-row gap-8 w-full flex-wrap justify-center">
+        {teams.map((team, index) => {
+          if (!team) return;
+          return (
+            <button
+              key={index}
+              onClick={() => {
+                navigator.clipboard.writeText(team.op_gg);
+                toast.success("Copié dans le presse papier");
+              }}
+              className="w-[200px] flex flex-row items-center gap-4 border p-2 rounded-xl"
+            >
+              <img
+                src={
+                  team.logo.includes("default-team")
+                    ? "https://www.theneedlepointer.com/stores/npoint/images/o/w/PHPCU-06/PHPCU-06.jpg"
+                    : team.logo
+                }
+                className="w-14 h-14 rounded-full"
+              />
+              <div className="truncate">{team.name}</div>
+            </button>
+          );
+        })}
+      </div>
+      <ToastContainer />
     </main>
-  )
+  );
 }
