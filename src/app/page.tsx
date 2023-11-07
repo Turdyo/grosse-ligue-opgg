@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Fuse from 'fuse.js'
 
 // import team.json from public/team.json
 import data from "./team.json";
@@ -15,38 +16,35 @@ interface Team {
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
 
-  const [teams, setTeams] = useState<any[] | null>(data);
+  const [teams, setTeams] = useState<any[]>(data);
+  const fuse = useMemo(() => new Fuse(teams, { keys: ["name"], isCaseSensitive: false, threshold: 0.6 }), [teams])
 
   useEffect(() => {
     // search with inputValue
     // setTeams with the result
     if (!inputValue || inputValue.length === 0) return setTeams(data);
+    const results = fuse.search(inputValue)
     setTeams(
-      data.filter((team) => {
-        return team.name.toLowerCase().includes(inputValue.toLowerCase());
-      })
+      results.map(team => team.item)
+      // data.filter((team) => {
+      //   return team.name.toLowerCase().includes(inputValue.toLowerCase());
+      // })
     );
   }, [inputValue]);
 
   if (!teams) return <div>Erreur contacter Robébou</div>;
 
   return (
-    <main className="bg-[#1a1a1a]  flex flex-col gap-5 py-10 items-center">
+    <main className="bg-[#1a1a1a] min-h-screen flex flex-col gap-5 py-10 items-center">
       <h1 className="self-center text-4xl text-[#42b883] font-bold py-5">
         Grosse Ligue multi opgg
       </h1>
-      <form
-        className="flex gap-5 min-w-max"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <input
-          className="bg-[#1b1b1b] border rounded-lg border-gray-600 p-3 w-96 focus:outline-none"
-          placeholder="4eSport"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-        />
-      </form>
-
+      <input
+        className="bg-[#1b1b1b] border rounded-lg border-gray-600 p-3 w-96 focus:outline-none"
+        placeholder="4eSport"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+      />
       <div className="flex flex-row gap-8 w-full flex-wrap justify-center">
         {teams.map((team, index) => {
           if (!team) return;
@@ -57,7 +55,7 @@ export default function Home() {
                 navigator.clipboard.writeText(team.op_gg);
                 toast.success("Copié dans le presse papier");
               }}
-              className="w-[200px] flex flex-row items-center gap-4 border p-2 rounded-xl"
+              className="w-[200px] flex flex-row items-center gap-4 border p-2 rounded-xl hover:text-[#42b883] transition-all hover:border-[#42b883]"
             >
               <img
                 src={
@@ -72,6 +70,7 @@ export default function Home() {
           );
         })}
       </div>
+      <p className="text-gray-500 text-s">Made by Robébou & Turdyo</p>
       <ToastContainer />
     </main>
   );
