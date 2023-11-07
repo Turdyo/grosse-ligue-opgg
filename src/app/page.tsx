@@ -9,7 +9,9 @@ export default function Home() {
 
   const getOPGG = useCallback(async (teamLink: string) => {
     const teamName = teamLink.split("/")[4];
-    console.log(teamName)
+    
+    if (!teamName) return "Invalid Team Link, should be like https://universityesports.fr/team/4es-dollex"
+
     const teamData = await fetch(
       `https://api.universityesports.fr/api/v001/showcase/university-esports/equipo/${teamName}`, { cache: "no-store" }
     ).then((res) => res.json());
