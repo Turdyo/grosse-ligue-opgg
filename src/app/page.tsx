@@ -9,17 +9,18 @@ export default function Home() {
 
   const getOPGG = useCallback(async (teamLink: string) => {
     const teamName = teamLink.split("/")[4];
-    
+
     if (!teamName) return "Invalid Team Link, should be like https://universityesports.fr/team/4es-dollex"
 
     const teamData = await fetch(
       `https://api.universityesports.fr/api/v001/showcase/university-esports/equipo/${teamName}`, { cache: "no-store" }
-    ).then((res) => res.json());
-    console.log(teamData)
+    ).then((res) => {
+      if (!res.ok) return { status: "not found" }
+      return res.json()
+    });
 
-    if (teamData.status === "error") {
-      return "Error"
-    }
+    if (teamData.status === "error") return "Error"
+    if (teamData.status === "not found") return "Team not found"
 
     const teamMembers = teamData.returnData.miembros;
 
@@ -70,7 +71,7 @@ export default function Home() {
         </button>
       </form>
       {isLoading && <div>Loading...</div>}
-      {response && <>
+      {response && <div className="flex gap-2 items-center">
         <a href={response} target="_blank" className="text-[#42b883]">
           {response}
         </a>
@@ -80,7 +81,7 @@ export default function Home() {
         >
           Copy
         </button>
-      </>}
+      </div>}
     </main>
   )
 }
